@@ -39,10 +39,10 @@
 00000000000i[MEM0 ] rom at 0xfffe0000/131072 ('./bochs/BIOS-bochs-latest')
 00000000000i[MEM0 ] rom at 0xc0000/39424 ('./bochs/vgabios.bin')
 00000000000i[CMOS ] Using local time for initial clock
-00000000000i[CMOS ] Setting initial clock to: Sun May  7 09:08:56 2023 (time0=1683421736)
+00000000000i[CMOS ] Setting initial clock to: Fri May 12 23:40:26 2023 (time0=1683906026)
 00000000000i[DMA  ] channel 4 used by cascade
 00000000000i[DMA  ] channel 2 used by Floppy Drive
 00000000000i[FDD  ] fd0: './linux-0.11/Image' ro=0, h=2,t=80,spt=18
 00000000000i[MEM0 ] Register memory access handlers: 0x000a0000 - 0x000bffff
-00000000000p[XGUI ] >>PANIC<< bochs: cannot connect to X server localhost:10.0
+00000000000p[XGUI ] >>PANIC<< bochs: cannot connect to X server localhost:12.0
 00000000000i[CTRL ] quit_sim called with exit code 1
