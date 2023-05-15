@@ -1,0 +1,74 @@
+1. 内核栈切换
+第一步：
+切换PCB
+	movl %ebx, %eax
+	xchgl %eax, current # eax=old_current, so current=pnext
+
+第二步：
+设置用户态进程的内核栈顶esp
+	movl tss, %ecx		# ecx = tss of pnext, it also the new current
+	addl $4096, %ebx	# ebx=the top of current kernel stack(pnext)
+	movl %ebx, 4(%ecx) # 将内核栈的栈顶写入到TSS中用于保存内核栈指针的ESP0
+
+因为每次系统调用结束后，esp都指向栈顶。task 的4096位置。
+为了让用户态切到内核态时，用户态堆栈向内核态堆栈切换，这是处理器自动处理的。
+
+第三步：
+切换不同进程间的内核栈
+	movl %esp, KERNEL_STACK(%eax)
+	movl 8(%ebp), %ebx 	# 再取一下ebx，因为前面修改了ebx的值	ebx=current(pnext)
+	movl KERNEL_STACK(%ebx), %esp
+
+第四步：加载ldt表，进程可以访问自己的进程地址空间。
+	movl 12(%ebp), %ecx
+	lldt %cx
+
+第五步：
+    出栈操作，第三步结束后，就已经是新的进程的栈顶了。
+    可以出栈：
+ 1：popl %eax
+	popl %ebx
+	popl %ecx
+	popl %ebp
+	ret              
+
+    fork中已经初始化好了，esp指向最下段。
+    *(--krnstack) = first_return_from_kernel;   ----》ret 指令 后eip = first_return_from_kernel
+    *(--krnstack) = ebp;
+    *(--krnstack) = ecx;
+    *(--krnstack) = ebx;
+    *(--krnstack) = 0;    # 最先出栈
+
+    p->kernelstack = krnstack;
+
+继续出栈：
+   first_return_from_kernel:
+	popl %edx
+	popl %edi
+	popl %esi
+	popl %gs
+	popl %fs
+	popl %es
+	popl %ds
+	iret
+
+对应fork 中的下列：
+	*(--krnstack) = ds & 0xffff;
+	*(--krnstack) = es & 0xffff;
+	*(--krnstack) = fs & 0xffff;
+	*(--krnstack) = gs & 0xffff;
+	*(--krnstack) = esi;
+	*(--krnstack) = edi;
+	*(--krnstack) = edx;
+
+     iret 对应 fork 中的:
+
+    *(--krnstack) = ss & 0xffff;
+	*(--krnstack) = esp;
+	*(--krnstack) = eflags;
+	*(--krnstack) = cs & 0xffff;
+	*(--krnstack) = eip;
+
+iret 指令执行后，新进程的用户态堆栈和cs ip。
+并且此时新进程的内核栈esp 执向栈顶4096位置。
+krnstack = (long *)(PAGE_SIZE + (long)p);
