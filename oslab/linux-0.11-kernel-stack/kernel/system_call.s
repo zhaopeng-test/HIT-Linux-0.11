@@ -52,7 +52,7 @@ counter	= 4
 priority = 8
 KERNEL_STACK = 12
 signal	= 16
-sigaction = 20		# MUST be 16 (=len of sigaction)
+sigaction = 20 		# MUST be 16 (=len of sigaction)
 blocked = (33*16 + 4)
 
 # offsets within sigaction
@@ -70,9 +70,7 @@ nr_system_calls = 72
 .globl system_call,sys_fork,timer_interrupt,sys_execve
 .globl hd_interrupt,floppy_interrupt,parallel_interrupt
 .globl device_not_available, coprocessor_error
-.globl switch_to
-.globl first_return_from_kernel
-
+.globl first_return_from_kernel, switch_to
 
 .align 2
 bad_sys_call:
@@ -290,9 +288,10 @@ parallel_interrupt:
 	popl %eax
 	iret
 
+.align 2
 switch_to:
 	pushl %ebp
-	movl %esp,%ebp # now esp point ebp, +4 ldt, +8 task pcb
+	movl %esp,%ebp # now esp point ebp, +4 }, +8 task pcb +12
 	pushl %ecx
 	pushl %ebx
 	pushl %eax
@@ -315,7 +314,10 @@ switch_to:
 	lldt %cx
 	movl $0x17,%ecx
 	mov %cx,%fs
-
+	cmpl %eax, last_task_used_math
+	jne 1f
+	clts
+	
 1:	popl %eax
 	popl %ebx
 	popl %ecx
@@ -331,4 +333,5 @@ first_return_from_kernel:
 	popl %es
 	popl %ds
 	iret
+
 

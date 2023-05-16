@@ -49,8 +49,6 @@ extern void mem_use(void);
 
 extern int timer_interrupt(void);
 extern int system_call(void);
-extern void switch_to(struct task_struct *p, unsigned long ldt);
-
 
 union task_union {
 	struct task_struct task;
@@ -58,7 +56,6 @@ union task_union {
 };
 
 static union task_union init_task = {INIT_TASK,};
-struct tss_struct *tss = &(init_task.task.tss);
 
 long volatile jiffies=0;
 long startup_time=0;
@@ -108,7 +105,6 @@ void schedule(void)
 {
 	int i,next,c;
 	struct task_struct ** p;
-	struct task_struct * pnext = &(init_task.task);
 
 /* check alarm, wake up any interruptible tasks that have got a signal */
 
@@ -134,7 +130,7 @@ void schedule(void)
 			if (!*--p)
 				continue;
 			if ((*p)->state == TASK_RUNNING && (*p)->counter > c)
-				c = (*p)->counter, next = i, pnext = *p;
+				c = (*p)->counter, next = i;
 		}
 		if (c) break;
 		for(p = &LAST_TASK ; p > &FIRST_TASK ; --p)
@@ -142,7 +138,7 @@ void schedule(void)
 				(*p)->counter = ((*p)->counter >> 1) +
 						(*p)->priority;
 	}
-	switch_to(pnext, _LDT(next));
+	switch_to(next);
 }
 
 int sys_pause(void)

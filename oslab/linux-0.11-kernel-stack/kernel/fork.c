@@ -18,6 +18,7 @@
 #include <asm/system.h>
 
 extern void write_verify(unsigned long address);
+extern void first_return_from_kernel(void);
 
 long last_pid=0;
 
@@ -61,7 +62,6 @@ int copy_mem(int nr,struct task_struct * p)
 	return 0;
 }
 
-extern void first_return_from_kernel(void);
 /*
  *  Ok, this is the main fork-routine. It copies the system process
  * information (task[nr]) and sets up the necessary registers. It
@@ -100,15 +100,23 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,
 	*(--krnstack) = cs & 0xffff;
 	*(--krnstack) = eip;
 
+	*(--krnstack) = ds & 0xffff;
+	*(--krnstack) = es & 0xffff;
+	*(--krnstack) = fs & 0xffff;
+	*(--krnstack) = gs & 0xffff;
+	*(--krnstack) = esi;
+	*(--krnstack) = edi;
+	*(--krnstack) = edx;
+
+	*(--krnstack) = first_return_from_kernel;
+
 	*(--krnstack) = ebp;
 	*(--krnstack) = ecx;
 	*(--krnstack) = ebx;
 	*(--krnstack) = 0;
 
-	*(--krnstack) = first_return_from_kernel;
-
 	p->kernelstack = krnstack;
-	/*
+
 	p->tss.back_link = 0;
 	p->tss.esp0 = PAGE_SIZE + (long) p;
 	p->tss.ss0 = 0x10;
@@ -130,7 +138,7 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,
 	p->tss.gs = gs & 0xffff;
 	p->tss.ldt = _LDT(nr);
 	p->tss.trace_bitmap = 0x80000000;
-	*/
+	
 	if (last_task_used_math == current)
 		__asm__("clts ; fnsave %0"::"m" (p->tss.i387));
 	if (copy_mem(nr,p)) {
